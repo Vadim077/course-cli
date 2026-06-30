@@ -1,3 +1,5 @@
+import os
+import shutil
 from click.testing import CliRunner
 from src.course_cli.cli import main
 
@@ -8,9 +10,16 @@ def test_cli_help():
     assert result.exit_code == 0
     assert "Usage: main" in result.output
 
-def test_init_command():
-    """Проверяем, что команда init вызывается и выводит текст-заглушку."""
+def test_init_creates_files(tmp_path):
+    """Проверяем, что команда init создает папки и файлы."""
+    # Создаем временную директорию для теста
     runner = CliRunner()
-    result = runner.invoke(main, ["init"])
-    assert result.exit_code == 0
-    assert "Команда init в разработке..." in result.output
+    # Запускаем init внутри временной директории
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(main, ["init", "MyTestCourse"])
+        
+        assert result.exit_code == 0
+        assert os.path.exists("MyTestCourse")
+        assert os.path.exists("MyTestCourse/course.yaml")
+        assert os.path.exists("MyTestCourse/modules")
+        assert os.path.exists("MyTestCourse/lessons/lesson_1.md")
