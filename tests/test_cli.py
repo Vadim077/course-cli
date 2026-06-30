@@ -23,3 +23,17 @@ def test_init_creates_files(tmp_path):
         assert os.path.exists("MyTestCourse/course.yaml")
         assert os.path.exists("MyTestCourse/modules")
         assert os.path.exists("MyTestCourse/lessons/lesson_1.md")
+
+def test_validate_command_failure(tmp_path):
+    """Проверяем, что validate ругается на пустой конфиг."""
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        # Создаем курс
+        runner.invoke(main, ["init", "BadCourse"])
+        # Портим конфиг
+        with open("BadCourse/course.yaml", "w") as f:
+            f.write("title: ''\noutcomes: []\n")
+        
+        result = runner.invoke(main, ["validate", "BadCourse"])
+        assert result.exit_code != 0
+        assert "Ошибка" in result.output
