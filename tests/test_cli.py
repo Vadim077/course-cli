@@ -37,3 +37,20 @@ def test_validate_command_failure(tmp_path):
         result = runner.invoke(main, ["validate", "BadCourse"])
         assert result.exit_code != 0
         assert "Ошибка" in result.output
+
+
+def test_report_command(tmp_path):
+    """Проверяем генерацию отчета и сохранение лога xAPI."""
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        # Создаем тестовый курс
+        runner.invoke(main, ["init", "ReportCourse"])
+        
+        # Запускаем report и передаем 'y'
+        result = runner.invoke(main, ["report", "ReportCourse"], input="y\n")
+        
+        # Проверяем результаты
+        assert result.exit_code == 0
+        assert "Отчет по курсу: ReportCourse" in result.output
+        assert "xAPI событие успешно сохранено" in result.output
+        assert os.path.exists("data/examples/log.json")
