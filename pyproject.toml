@@ -1,0 +1,8 @@
+[project]
+name = "course-cli"
+version = "0.1.0"
+description = "CLI-инструмент для структурирования курса"
+dependencies = [
+    "click",
+    "PyYAML"
+]
