@@ -2,6 +2,9 @@ import click
 import yaml
 from pathlib import Path
 from .validate import validate_course
+import json
+from datetime import datetime, timezone
+from .report import get_course_stats
 
 @click.group()
 def main():
@@ -56,10 +59,52 @@ def validate(course_path):
     else:
         click.secho("Курс провалидирован успешно!", fg="green")
 
+
+
 @click.command()
-def report():
-    """Сгенерировать отчет и отправить xAPI-событие."""
-    click.echo("Команда report в разработке...")
+@click.argument('course_path', type=click.Path(exists=True))
+def report(course_path):
+    """Сгенерировать отчет и сохранить xAPI-событие."""
+    path = Path(course_path)
+    stats = get_course_stats(path)
+
+    # Вывод статистики
+    click.secho(f"\n--- Отчет по курсу: {stats['title']} ---", fg="cyan")
+    click.echo(f"Учебных результатов: {stats['outcomes_count']}")
+    click.echo(f"Количество уроков: {stats['lessons_count']}")
+    click.echo("-----------------------------------\n")
+
+    # Интерактивный запрос
+    if click.confirm('Сформировать отчет xAPI и сохранить локально?'):
+        xapi_event = {
+            "actor": "teacher",
+            "verb": "course_reported",
+            "object": stats['title'],
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        }
+
+        # Сохраняем в файл log.json
+        log_dir = Path("data/examples")
+        log_dir.mkdir(parents=True, exist_ok=True) # Создаем папку, если вдруг ее нет
+        log_file = log_dir / "log.json"
+
+        # Читаем старые логи, чтобы не перезаписывать их, а добавлять
+        logs = []
+        if log_file.exists():
+            with open(log_file, "r", encoding="utf-8") as f:
+                try:
+                    logs = json.load(f)
+                except json.JSONDecodeError:
+                    pass
+
+        logs.append(xapi_event)
+
+        with open(log_file, "w", encoding="utf-8") as f:
+            json.dump(logs, f, ensure_ascii=False, indent=2)
+
+        click.secho(f"xAPI событие успешно сохранено в {log_file}", fg="green")
+    else:
+        click.secho("Отправка xAPI отменена.", fg="yellow")
 
 main.add_command(init)
 main.add_command(validate)
