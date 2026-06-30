@@ -1,6 +1,7 @@
 import click
 import yaml
 from pathlib import Path
+from .validate import validate_course
 
 @click.group()
 def main():
@@ -40,10 +41,20 @@ def init(title):
 
     click.secho(f"Успех! Курс '{title}' создан.", fg="green")
 
+
 @click.command()
-def validate():
+@click.argument('course_path', type=click.Path(exists=True))
+def validate(course_path):
     """Проверить курс на наличие ошибок и метаданных."""
-    click.echo("Команда validate в разработке...")
+    path = Path(course_path)
+    errors = validate_course(path)
+    
+    if errors:
+        for error in errors:
+            click.secho(f"Ошибка: {error}", fg="red")
+        exit(1)
+    else:
+        click.secho("Курс провалидирован успешно!", fg="green")
 
 @click.command()
 def report():
