@@ -9,3 +9,6 @@ dependencies = [
     "pytest",
     "pytest-cov"
 ]
+
+[project.scripts]
+course-cli = "course_cli.cli:main"
