@@ -6,3 +6,7 @@ htmlcov/
 .pytest_cache/
 
 log.json
+
+*.egg-info/
+build/
+dist/
