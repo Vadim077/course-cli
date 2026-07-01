@@ -15,25 +15,30 @@ def main():
 @click.argument('title', required=False)
 def init(title):
     """Инициализировать шаблон нового курса."""
-    # Если название не передали
     if not title:
         title = click.prompt("Введите название курса")
+        
+    modules_count = click.prompt("Введите количество модулей", type=int, default=1)
+    lessons_count = click.prompt("Введите количество уроков в каждом модуле", type=int, default=1)
 
-    # Создаем структуру папок
     course_path = Path(title)
     if course_path.exists():
         click.secho(f"Ошибка: Папка {title} уже существует!", fg="red")
         return
 
-    # Создаем дерево директорий
-    (course_path / "modules").mkdir(parents=True)
-    (course_path / "lessons").mkdir(parents=True)
+    course_path.mkdir(parents=True)
+    (course_path / "index.md").write_text(f"# {title}\n\nДобро пожаловать на курс!", encoding="utf-8")
 
-    # Создаем базовые файлы шаблона
-    (course_path / "index.md").write_text(f"# {title}\n\nWelcome!")
-    (course_path / "lessons/lesson_1.md").write_text(f"# Урок 1\n\n First lesson")
+    modules_dir = course_path / "modules"
+    modules_dir.mkdir()
 
-    # Создаем файл course.yaml
+    for m in range(1, modules_count + 1):
+        mod_path = modules_dir / f"module_{m}"
+        mod_path.mkdir()
+        for l in range(1, lessons_count + 1):
+            lesson_file = mod_path / f"lesson_{l}.md"
+            lesson_file.write_text(f"# Модуль {m} - Урок {l}\n\nТекст урока.", encoding="utf-8")
+
     config_data = {
         "title": title,
         "outcomes": [],
@@ -42,7 +47,9 @@ def init(title):
     with open(course_path / "course.yaml", "w", encoding="utf-8") as f:
         yaml.dump(config_data, f, allow_unicode=True)
 
-    click.secho(f"Успех! Курс '{title}' создан.", fg="green")
+    total_lessons = modules_count * lessons_count
+    click.secho(f"Успех! Курс '{title}' создан (Модулей: {modules_count}, Уроков: {total_lessons}).", fg="green")
+
 
 
 @click.command()
