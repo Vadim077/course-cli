@@ -16,22 +16,20 @@ def test_init_creates_files(tmp_path):
     runner = CliRunner()
     # Запускаем init внутри временной директории
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        result = runner.invoke(main, ["init", "MyTestCourse"])
+        result = runner.invoke(main, ["init", "MyTestCourse"], input="2\n3\n")
         
         assert result.exit_code == 0
-        assert os.path.exists("MyTestCourse")
         assert os.path.exists("MyTestCourse/course.yaml")
-        assert os.path.exists("MyTestCourse/modules")
-        assert os.path.exists("MyTestCourse/lessons/lesson_1.md")
+        assert os.path.exists("MyTestCourse/modules/module_1/lesson_1.md")
+        assert os.path.exists("MyTestCourse/modules/module_2/lesson_3.md")
 
 def test_validate_command_failure(tmp_path):
     """Проверяем, что validate ругается на пустой конфиг."""
     runner = CliRunner()
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        # Создаем курс
-        runner.invoke(main, ["init", "BadCourse"])
+        runner.invoke(main, ["init", "BadCourse"], input="\n\n")        
         # Портим конфиг
-        with open("BadCourse/course.yaml", "w") as f:
+        with open("BadCourse/course.yaml", "w", encoding="utf-8") as f:
             f.write("title: ''\noutcomes: []\n")
         
         result = runner.invoke(main, ["validate", "BadCourse"])
@@ -40,16 +38,12 @@ def test_validate_command_failure(tmp_path):
 
 
 def test_report_command(tmp_path):
-    """Проверяем генерацию отчета и сохранение лога xAPI."""
+    """Проверяем генерацию отчета и сохранение лога."""
     runner = CliRunner()
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        # Создаем тестовый курс
-        runner.invoke(main, ["init", "ReportCourse"])
-        
-        # Запускаем report и передаем 'y'
+        runner.invoke(main, ["init", "ReportCourse"], input="\n\n")
         result = runner.invoke(main, ["report", "ReportCourse"], input="y\n")
         
-        # Проверяем результаты
         assert result.exit_code == 0
         assert "Отчет по курсу: ReportCourse" in result.output
         assert "xAPI событие успешно сохранено" in result.output
