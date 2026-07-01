@@ -12,9 +12,9 @@ def get_course_stats(course_path: Path) -> dict:
             stats["title"] = data.get("title", "Unknown")
             stats["outcomes_count"] = len(data.get("outcomes") or [])
             
-    lessons_dir = course_path / "lessons"
-    if lessons_dir.exists():
-        # Считаем все файлы с расширением .md в папке lessons
-        stats["lessons_count"] = len(list(lessons_dir.glob("*.md")))
-        
+    modules_dir = course_path / "modules"
+    if modules_dir.exists():
+        # rglob ("recursive glob") ищет файлы во всех вложенных папках модулей
+        stats["lessons_count"] = len(list(modules_dir.rglob("*.md")))
+                
     return stats
