@@ -1,7 +1,7 @@
 import os
 import shutil
 from click.testing import CliRunner
-from src.course_cli.cli import main
+from course_cli.cli import main
 
 def test_cli_help():
     """Проверяем, что справка `--help` выводится без ошибок."""
