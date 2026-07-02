@@ -20,6 +20,14 @@ def init(title):
         
     modules_count = click.prompt("Введите количество модулей", type=int, default=1)
     lessons_count = click.prompt("Введите количество уроков в каждом модуле", type=int, default=1)
+    
+    # Новые вопросы для сбора метаданных (ТЗ п.6)
+    outcomes_input = click.prompt("Введите учебные результаты (через запятую) или оставьте пустым", default="", show_default=False)
+    skills_input = click.prompt("Введите связанные навыки (через запятую) или оставьте пустым", default="", show_default=False)
+
+    # Превращаем строки в списки, удаляя лишние пробелы
+    outcomes = [x.strip() for x in outcomes_input.split(",")] if outcomes_input else []
+    skills = [x.strip() for x in skills_input.split(",")] if skills_input else []
 
     course_path = Path(title)
     if course_path.exists():
@@ -37,12 +45,17 @@ def init(title):
         mod_path.mkdir()
         for l in range(1, lessons_count + 1):
             lesson_file = mod_path / f"lesson_{l}.md"
-            lesson_file.write_text(f"# Модуль {m} - Урок {l}\n\nТекст урока.", encoding="utf-8")
+            # Для теста добавим "правильную" и "битую" ссылку в первый урок
+            content = f"# Модуль {m} - Урок {l}\n\nТекст урока.\n"
+            if m == 1 and l == 1:
+                content += "\n[Ссылка на индекс](../../index.md)\n[Битая ссылка](missing.md)"
+            lesson_file.write_text(content, encoding="utf-8")
 
+    # Сохраняем новые данные в YAML
     config_data = {
         "title": title,
-        "outcomes": [],
-        "skills": []
+        "outcomes": outcomes,
+        "skills": skills
     }
     with open(course_path / "course.yaml", "w", encoding="utf-8") as f:
         yaml.dump(config_data, f, allow_unicode=True)
