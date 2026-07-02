@@ -2,9 +2,8 @@ import click
 import yaml
 from pathlib import Path
 from .validate import validate_course
-import json
-from datetime import datetime, timezone
 from .report import get_course_stats
+from .xapi import log_event 
 
 @click.group()
 def main():
@@ -21,11 +20,9 @@ def init(title):
     modules_count = click.prompt("Введите количество модулей", type=int, default=1)
     lessons_count = click.prompt("Введите количество уроков в каждом модуле", type=int, default=1)
     
-    # Новые вопросы для сбора метаданных (ТЗ п.6)
     outcomes_input = click.prompt("Введите учебные результаты (через запятую) или оставьте пустым", default="", show_default=False)
     skills_input = click.prompt("Введите связанные навыки (через запятую) или оставьте пустым", default="", show_default=False)
 
-    # Превращаем строки в списки, удаляя лишние пробелы
     outcomes = [x.strip() for x in outcomes_input.split(",")] if outcomes_input else []
     skills = [x.strip() for x in skills_input.split(",")] if skills_input else []
 
@@ -45,13 +42,11 @@ def init(title):
         mod_path.mkdir()
         for l in range(1, lessons_count + 1):
             lesson_file = mod_path / f"lesson_{l}.md"
-            # Для теста добавим "правильную" и "битую" ссылку в первый урок
             content = f"# Модуль {m} - Урок {l}\n\nТекст урока.\n"
             if m == 1 and l == 1:
                 content += "\n[Ссылка на индекс](../../index.md)\n[Битая ссылка](missing.md)"
             lesson_file.write_text(content, encoding="utf-8")
 
-    # Сохраняем новые данные в YAML
     config_data = {
         "title": title,
         "outcomes": outcomes,
@@ -62,7 +57,13 @@ def init(title):
 
     total_lessons = modules_count * lessons_count
     click.secho(f"Успех! Курс '{title}' создан (Модулей: {modules_count}, Уроков: {total_lessons}).", fg="green")
-
+    
+    log_event(
+        course_path=course_path,
+        verb="initialized",
+        object_id=title,
+        context_info=f"Модулей: {modules_count}, Уроков: {total_lessons}"
+    )
 
 
 @click.command()
@@ -78,7 +79,12 @@ def validate(course_path):
         exit(1)
     else:
         click.secho("Курс провалидирован успешно!", fg="green")
-
+        log_event(
+            course_path=path,
+            verb="validated",
+            object_id=path.name,
+            context_info="Успешная валидация структуры и ссылок"
+        )
 
 
 @click.command()
@@ -88,41 +94,19 @@ def report(course_path):
     path = Path(course_path)
     stats = get_course_stats(path)
 
-    # Вывод статистики
     click.secho(f"\n--- Отчет по курсу: {stats['title']} ---", fg="cyan")
     click.echo(f"Учебных результатов: {stats['outcomes_count']}")
     click.echo(f"Количество уроков: {stats['lessons_count']}")
     click.echo("-----------------------------------\n")
 
-    # Интерактивный запрос
     if click.confirm('Сформировать отчет xAPI и сохранить локально?'):
-        xapi_event = {
-            "actor": "teacher",
-            "verb": "course_reported",
-            "object": stats['title'],
-            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        }
-
-        # Сохраняем в файл log.json
-        log_dir = Path("data/examples")
-        log_dir.mkdir(parents=True, exist_ok=True) # Создаем папку, если вдруг ее нет
-        log_file = log_dir / "log.json"
-
-        # Читаем старые логи, чтобы не перезаписывать их, а добавлять
-        logs = []
-        if log_file.exists():
-            with open(log_file, "r", encoding="utf-8") as f:
-                try:
-                    logs = json.load(f)
-                except json.JSONDecodeError:
-                    pass
-
-        logs.append(xapi_event)
-
-        with open(log_file, "w", encoding="utf-8") as f:
-            json.dump(logs, f, ensure_ascii=False, indent=2)
-
-        click.secho(f"xAPI событие успешно сохранено в {log_file}", fg="green")
+        log_event(
+            course_path=path,
+            verb="reported",
+            object_id=stats['title'],
+            context_info=f"Статистика: {stats['lessons_count']} уроков, {stats['outcomes_count']} результатов."
+        )
+        click.secho(f"xAPI событие успешно сохранено в {path / 'log.json'}", fg="green")
     else:
         click.secho("Отправка xAPI отменена.", fg="yellow")
 
