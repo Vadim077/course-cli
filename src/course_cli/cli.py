@@ -90,21 +90,39 @@ def validate(course_path):
 @click.command()
 @click.argument('course_path', type=click.Path(exists=True))
 def report(course_path):
-    """Сгенерировать отчет и сохранить xAPI-событие."""
+    """Сгенерировать расширенный отчет и сохранить xAPI-событие."""
     path = Path(course_path)
     stats = get_course_stats(path)
 
-    click.secho(f"\n--- Отчет по курсу: {stats['title']} ---", fg="cyan")
-    click.echo(f"Учебных результатов: {stats['outcomes_count']}")
-    click.echo(f"Количество уроков: {stats['lessons_count']}")
-    click.echo("-----------------------------------\n")
+    click.secho(f"\n Отчёт по курсу: {stats['title']}", fg="cyan", bold=True)
+    click.secho("=" * 50, fg="cyan")
+    
+    click.secho(" Структура:", fg="blue", bold=True)
+    click.echo(f"  • Модулей: {stats['modules_count']}")
+    click.echo(f"  • Уроков: {stats['lessons_count']}")
+    if stats['empty_modules'] > 0:
+        click.secho(f"  ! Внимание: найдено {stats['empty_modules']} пустых модулей без уроков!", fg="red")
+        
+    click.secho("\nОбразовательные метрики:", fg="blue", bold=True)
+    outcomes_len = len(stats['outcomes'])
+    skills_len = len(stats['skills'])
+    
+    click.echo(f"  • Учебных результатов (outcomes): {outcomes_len}")
+    if outcomes_len == 0:
+        click.secho("    -> Критично: результаты обучения не заданы!", fg="red")
+        
+    click.echo(f"  • Связанных компетенций (skills): {skills_len}")
+    if skills_len == 0:
+        click.secho("    -> Рекомендация: привяжите компетенции для матрицы навыков", fg="yellow")
+        
+    click.secho("=" * 50 + "\n", fg="cyan")
 
     if click.confirm('Сформировать отчет xAPI и сохранить локально?'):
         log_event(
             course_path=path,
             verb="reported",
             object_id=stats['title'],
-            context_info=f"Статистика: {stats['lessons_count']} уроков, {stats['outcomes_count']} результатов."
+            context_info=f"Модулей: {stats['modules_count']}, Уроков: {stats['lessons_count']}, Outcomes: {outcomes_len}"
         )
         click.secho(f"xAPI событие успешно сохранено в {path / 'log.json'}", fg="green")
     else:

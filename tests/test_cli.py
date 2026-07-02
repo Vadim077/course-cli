@@ -115,5 +115,7 @@ def test_report_command(tmp_path):
         runner.invoke(main, ["init", "ReportCourse"], input="\n\n\n\n")
         result = runner.invoke(main, ["report", "ReportCourse"], input="y\n")
         
-        assert result.exit_code == 0
-        assert "Отчет по курсу: ReportCourse" in result.output
+    assert result.exit_code == 0
+    assert "ReportCourse" in result.output
+    assert "Модулей:" in result.output
+    assert "xAPI событие успешно сохранено" in result.output
