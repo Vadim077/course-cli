@@ -1,0 +1,17 @@
+.git
+.gitignore
+
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+.pytest_cache/
+htmlcov/
+.coverage
+log.json
+
+Dockerfile
+docker-compose.yml
